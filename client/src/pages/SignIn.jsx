@@ -1,11 +1,17 @@
 import { Alert, Button, Label, Spinner, TextInput } from "flowbite-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  signInStart,
+  signInSuccess,
+  signInFailure,
+} from "../redux/user/userSlice.js";
+import { useDispatch, useSelector } from "react-redux";
 
 function SignIn() {
   const [formData, setFormData] = useState({});
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { loading, error: errorMessage } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   function handleChange(e) {
@@ -16,11 +22,10 @@ function SignIn() {
     e.preventDefault();
 
     if (!formData.email || !formData.password) {
-      return setErrorMessage("Please fill out all fields!");
+      dispatch(signInFailure("Please fill out all fields!"));
     }
 
-    setIsLoading(true);
-    setErrorMessage(null);
+    dispatch(signInStart());
 
     try {
       const res = await fetch("/backend/auth/signin", {
@@ -31,17 +36,15 @@ function SignIn() {
 
       const data = await res.json();
       if (data.success === false) {
-        setIsLoading(false);
-        return setErrorMessage(data.message);
+        dispatch(signInFailure(data.message));
       }
 
-      setIsLoading(false);
       if (res.ok) {
+        dispatch(signInSuccess(data));
         navigate("/");
       }
     } catch (error) {
-      setIsLoading(false);
-      setErrorMessage(error);
+      dispatch(signInFailure(error.message));
     }
   }
 
@@ -89,9 +92,9 @@ function SignIn() {
               gradientDuoTone="purpleToPink"
               outline
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <Spinner size="sm" />
                   <span className="ml-3">Loading...</span>
